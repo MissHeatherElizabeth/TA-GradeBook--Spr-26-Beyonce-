@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TA Gradebook</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --bg-primary:#ffffff;--bg-secondary:#f5f5f3;--bg-tertiary:#eeede9;
+    --text-primary:#1a1a1a;--text-secondary:#555;--text-tertiary:#999;
+    --border-light:rgba(0,0,0,0.1);--border-med:rgba(0,0,0,0.18);
+    --radius-md:8px;--radius-lg:12px;
+    --navy:#1A1A2E;--gold:#C9A84C;--gold-light:#C9A84C18;--gold-border:#C9A84C44;
+  }
+  @media(prefers-color-scheme:dark){
+    :root{
+      --bg-primary:#1e1e1e;--bg-secondary:#272727;--bg-tertiary:#313131;
+      --text-primary:#f0f0f0;--text-secondary:#aaa;--text-tertiary:#666;
+      --border-light:rgba(255,255,255,0.08);--border-med:rgba(255,255,255,0.15);
+    }
+  }
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg-tertiary);color:var(--text-primary);min-height:100vh;padding:1.5rem}
+  .app{max-width:960px;margin:0 auto}
+  .topbar{display:flex;align-items:center;gap:10px;margin-bottom:1.25rem;flex-wrap:wrap}
+  .topbar h1{font-size:20px;font-weight:600;color:var(--text-primary);flex:1}
+  .topbar h1 span{color:var(--gold)}
+  .search-wrap{position:relative}
+  .search-wrap input{padding:7px 10px 7px 32px;font-size:13px;border-radius:var(--radius-md);border:1px solid var(--border-med);background:var(--bg-primary);color:var(--text-primary);width:190px;outline:none}
+  .search-wrap input:focus{border-color:var(--gold)}
+  .search-icon{position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--text-tertiary);font-size:13px;pointer-events:none}
+  .btn{padding:7px 14px;font-size:13px;border:1px solid var(--border-med);border-radius:var(--radius-md);background:var(--bg-primary);color:var(--text-primary);cursor:pointer;transition:background 0.15s}
+  .btn:hover{background:var(--bg-secondary)}
+  .btn.primary{background:var(--navy);color:var(--gold);border-color:var(--navy)}
+  .btn.primary:hover{opacity:0.88}
+  .stats-row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:1.25rem}
+  .stat{background:var(--bg-primary);border-radius:var(--radius-md);padding:.85rem 1rem;border:1px solid var(--border-light)}
+  .stat .lbl{font-size:12px;color:var(--text-secondary);margin-bottom:4px}
+  .stat .val{font-size:24px;font-weight:600;color:var(--text-primary)}
+  .panels{display:grid;grid-template-columns:270px minmax(0,1fr);gap:14px;align-items:start}
+  @media(max-width:640px){.panels{grid-template-columns:1fr}.stats-row{grid-template-columns:repeat(2,1fr)}}
+  .panel{background:var(--bg-primary);border:1px solid var(--border-light);border-radius:var(--radius-lg);overflow:hidden}
+  .panel-head{padding:11px 14px;border-bottom:1px solid var(--border-light);display:flex;align-items:center;justify-content:space-between}
+  .panel-head span{font-size:13px;font-weight:500;color:var(--text-secondary)}
+  .student-list{max-height:520px;overflow-y:auto}
+  .student-item{padding:9px 14px;cursor:pointer;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border-light)}
+  .student-item:last-child{border-bottom:none}
+  .student-item:hover{background:var(--bg-secondary)}
+  .student-item.active{background:var(--navy)}
+  .student-item.active .sname{color:var(--gold)}
+  .student-item.active .sprog{color:#C9A84C88}
+  .avatar{width:30px;height:30px;border-radius:50%;background:var(--bg-secondary);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:var(--text-secondary);flex-shrink:0}
+  .student-item.active .avatar{background:#C9A84C22;color:var(--gold)}
+  .sname{font-size:13px;font-weight:500;color:var(--text-primary);flex:1}
+  .sprog{font-size:11px;color:var(--text-tertiary)}
+  .prog-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+  .detail-head{padding:14px 16px;border-bottom:1px solid var(--border-light)}
+  .detail-head .dname{font-size:16px;font-weight:600;color:var(--text-primary)}
+  .detail-head .dmeta{font-size:12px;color:var(--text-secondary);margin-top:3px}
+  .prog-bar-wrap{height:5px;background:var(--bg-secondary);border-radius:3px;margin-top:8px}
+  .prog-bar{height:100%;border-radius:3px;background:var(--gold);transition:width 0.3s}
+  .assign-grid{padding:14px 16px;display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px}
+  .assign-card{border:1px solid var(--border-light);border-radius:var(--radius-md);padding:10px 12px;display:flex;align-items:flex-start;gap:10px;cursor:pointer;transition:background 0.12s}
+  .assign-card:hover{background:var(--bg-secondary)}
+  .assign-card.done{border-color:var(--gold-border);background:var(--gold-light)}
+  .cb{width:18px;height:18px;border-radius:4px;border:1.5px solid var(--border-med);flex-shrink:0;display:flex;align-items:center;justify-content:center;margin-top:1px;transition:background 0.12s}
+  .assign-card.done .cb{background:var(--gold);border-color:var(--gold)}
+  .check-svg{display:none}
+  .assign-card.done .check-svg{display:block}
+  .assign-info .aname{font-size:13px;font-weight:500;color:var(--text-primary)}
+  .assign-info .aweek{font-size:11px;color:var(--text-tertiary);margin-top:2px}
+  .assign-card.done .aname{color:var(--text-secondary)}
+  .badge{font-size:11px;padding:2px 9px;border-radius:20px;font-weight:500}
+  .badge.all{background:#C9A84C18;color:#a07820}
+  .badge.none{background:var(--bg-secondary);color:var(--text-tertiary)}
+  .badge.some{background:#e6f1fb;color:#185fa5}
+  .empty{padding:3rem;text-align:center;color:var(--text-tertiary);font-size:14px}
+  .week-label{grid-column:1/-1;font-size:12px;font-weight:600;color:var(--text-secondary);padding:10px 0 4px;display:flex;align-items:center;gap:8px;border-top:1px solid var(--border-light);margin-top:4px}
+  .week-label:first-child{border-top:none;margin-top:0}
+  .week-label .wcount{color:var(--text-tertiary);font-weight:400}
+  .bulk-btns{padding:10px 16px;border-bottom:1px solid var(--border-light);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .toast{position:fixed;bottom:1.5rem;right:1.5rem;background:var(--navy);color:var(--gold);padding:10px 18px;border-radius:var(--radius-md);font-size:13px;font-weight:500;opacity:0;transition:opacity 0.3s;pointer-events:none;z-index:999}
+  .toast.show{opacity:1}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="topbar">
+    <h1>TA <span>Gradebook</span></h1>
+    <div class="search-wrap">
+      <span class="search-icon">&#128269;</span>
+      <input id="search" placeholder="Search students..." oninput="filterStudents()">
+    </div>
+    <button class="btn" onclick="addStudent()">+ Student</button>
+    <button class="btn" onclick="manageWeeks()">Edit Weeks</button>
+    <button class="btn primary" onclick="exportCSV()">&#8595; Export CSV</button>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat"><div class="lbl">Students</div><div class="val" id="stat-students">0</div></div>
+    <div class="stat"><div class="lbl">Assignments</div><div class="val" id="stat-assignments">0</div></div>
+    <div class="stat"><div class="lbl">Completed</div><div class="val" id="stat-done">0</div></div>
+    <div class="stat"><div class="lbl">Avg completion</div><div class="val" id="stat-avg">—</div></div>
+  </div>
+
+  <div class="panels">
+    <div class="panel">
+      <div class="panel-head">
+        <span id="list-count">Students</span>
+        <span id="filter-label" style="font-size:11px;color:var(--text-tertiary)"></span>
+      </div>
+      <div class="student-list" id="student-list"></div>
+    </div>
+    <div class="panel">
+      <div id="detail-area"><div class="empty">&#8592; Select a student to view their assignments</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const WEEKS = ['Week 1','Week 2','Week 3','Week 4','Week 5','Week 6','Week 7','Week 8'];
+const ASSIGN_TYPES = ['Discussion Post','Reading Response','Reflection'];
+
+let weeks = [...WEEKS];
+let assignmentDefs = [];
+
+function rebuildDefs(){
+  assignmentDefs = [];
+  weeks.forEach(w => ASSIGN_TYPES.forEach(a => assignmentDefs.push({id:`${w}||${a}`,week:w,name:a})));
+}
+rebuildDefs();
+
+const SAMPLE_NAMES = ['Aaliyah Johnson','Brandon Lee','Camille Torres','Darius Patel','Elena Vasquez','Felix Okonkwo','Grace Chen','Hassan Ali','Isabelle Martin','Jordan Brooks','Kaia Nguyen','Liam Osei','Maya Robinson','Noah Kim','Olivia Davis','Priya Sharma','Quinn Murphy','Rafael Santos','Sofia Hernandez','Theo Williams','Uma Kapoor','Victor Okeke','Wren Taylor','Xander Cruz','Yasmine Adebayo','Zoe Anderson','Adrian Bell','Bella Castillo','Carlos Diaz','Diana Evans','Elijah Foster','Fiona Garcia','Gabriel Harris','Hana Iyer','Isaac Jackson','Jade Kimura','Kayla Lewis','Lucas Morales','Mia Nelson','Nathan Ortega','Penelope Price','Rhea Quinn','Samuel Reed','Talia Stevens','Umar Thomas','Valentina Uribe','Wesley Vega','Xena Wade','Yusuf Xavier','Zara Young'];
+
+let students = SAMPLE_NAMES.map((name,i)=>{
+  let grades={};
+  assignmentDefs.forEach(a=>{grades[a.id]=Math.random()<0.55?{done:true}:{done:false}});
+  return {id:i,name,grades};
+});
+
+let selected = null;
+let searchTerm = '';
+
+function toast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2000);
+}
+
+function getCompletion(s){
+  const done=assignmentDefs.filter(a=>s.grades[a.id]?.done).length;
+  return {done,total:assignmentDefs.length,pct:assignmentDefs.length?Math.round(done/assignmentDefs.length*100):0};
+}
+
+function dotColor(pct){return pct===100?'#4CAF50':pct>=50?'#C9A84C':'#E24B4A'}
+function badgeClass(pct){return pct===100?'all':pct===0?'none':'some'}
+function badgeText(pct){return pct===100?'All done':pct===0?'None':pct+'%'}
+
+function updateStats(){
+  document.getElementById('stat-students').textContent=students.length;
+  document.getElementById('stat-assignments').textContent=assignmentDefs.length;
+  let totalDone=0;
+  students.forEach(s=>assignmentDefs.forEach(a=>{if(s.grades[a.id]?.done)totalDone++}));
+  document.getElementById('stat-done').textContent=totalDone;
+  const total=students.length*assignmentDefs.length;
+  document.getElementById('stat-avg').textContent=total>0?Math.round(totalDone/total*100)+'%':'—';
+}
+
+function renderList(){
+  const filtered=students.filter(s=>s.name.toLowerCase().includes(searchTerm));
+  document.getElementById('list-count').textContent=`Students (${filtered.length})`;
+  document.getElementById('student-list').innerHTML=filtered.map(s=>{
+    const c=getCompletion(s);
+    const initials=s.name.split(' ').map(x=>x[0]).join('').slice(0,2);
+    const active=selected?.id===s.id;
+    return `<div class="student-item${active?' active':''}" onclick="selectStudent(${s.id})">
+      <div class="avatar">${initials}</div>
+      <div style="flex:1;min-width:0">
+        <div class="sname">${s.name}</div>
+        <div class="sprog">${c.done}/${c.total} complete</div>
+      </div>
+      <div class="prog-dot" style="background:${dotColor(c.pct)}"></div>
+    </div>`;
+  }).join('');
+}
+
+function selectStudent(id){
+  selected=students.find(s=>s.id===id);
+  renderList();
+  renderDetail();
+}
+
+function renderDetail(){
+  if(!selected){document.getElementById('detail-area').innerHTML='<div class="empty">&#8592; Select a student to view their assignments</div>';return;}
+  const s=selected, c=getCompletion(s);
+  const byWeek={};
+  assignmentDefs.forEach(a=>{if(!byWeek[a.week])byWeek[a.week]=[];byWeek[a.week].push(a)});
+
+  let html=`<div class="detail-head">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+      <div class="dname">${s.name}</div>
+      <span class="badge ${badgeClass(c.pct)}">${badgeText(c.pct)}</span>
+    </div>
+    <div class="dmeta">${c.done} of ${c.total} assignments completed</div>
+    <div class="prog-bar-wrap"><div class="prog-bar" style="width:${c.pct}%"></div></div>
+  </div>
+  <div class="bulk-btns">
+    <button class="btn" onclick="markAll(true)">&#10003; Mark all complete</button>
+    <button class="btn" onclick="markAll(false)">&#10007; Clear all</button>
+    <button class="btn" style="margin-left:auto;color:#c0392b;border-color:#f1c0c0" onclick="removeStudent(${s.id})">Remove</button>
+  </div>
+  <div class="assign-grid">`;
+
+  weeks.forEach(w=>{
+    const wa=byWeek[w]||[];
+    if(!wa.length)return;
+    const wDone=wa.filter(a=>s.grades[a.id]?.done).length;
+    html+=`<div class="week-label">${w} <span class="wcount">${wDone}/${wa.length}</span>
+      <button class="btn" style="padding:2px 10px;font-size:11px;margin-left:auto" onclick="markWeekItems('${w}',true)">All</button>
+      <button class="btn" style="padding:2px 10px;font-size:11px" onclick="markWeekItems('${w}',false)">Clear</button>
+    </div>`;
+    wa.forEach(a=>{
+      const done=s.grades[a.id]?.done||false;
+      html+=`<div class="assign-card${done?' done':''}" onclick="toggleAssign('${a.id}')">
+        <div class="cb"><svg class="check-svg" width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="assign-info"><div class="aname">${a.name}</div><div class="aweek">${a.week}</div></div>
+      </div>`;
+    });
+  });
+
+  html+='</div>';
+  document.getElementById('detail-area').innerHTML=html;
+}
+
+function toggleAssign(aid){
+  if(!selected)return;
+  if(!selected.grades[aid])selected.grades[aid]={done:false};
+  selected.grades[aid].done=!selected.grades[aid].done;
+  renderDetail();updateStats();
+}
+
+function markAll(state){
+  if(!selected)return;
+  assignmentDefs.forEach(a=>{selected.grades[a.id]={done:state}});
+  renderDetail();updateStats();
+  toast(state?'All marked complete':'All cleared');
+}
+
+function markWeekItems(week,state){
+  if(!selected)return;
+  assignmentDefs.filter(a=>a.week===week).forEach(a=>{selected.grades[a.id]={done:state}});
+  renderDetail();updateStats();
+  toast(state?`${week} marked complete`:`${week} cleared`);
+}
+
+function filterStudents(){
+  searchTerm=document.getElementById('search').value.toLowerCase();
+  renderList();
+}
+
+function addStudent(){
+  const name=prompt('Enter student name:');
+  if(!name||!name.trim())return;
+  const id=Date.now();
+  let grades={};
+  assignmentDefs.forEach(a=>{grades[a.id]={done:false}});
+  students.push({id,name:name.trim(),grades});
+  renderList();updateStats();
+  toast('Student added');
+}
+
+function removeStudent(id){
+  if(!confirm('Remove this student from the gradebook?'))return;
+  students=students.filter(s=>s.id!==id);
+  selected=null;
+  renderList();renderDetail();updateStats();
+}
+
+function manageWeeks(){
+  const current=weeks.join(', ');
+  const input=prompt('Edit week names (comma-separated):\n\nCurrent: '+current, current);
+  if(!input)return;
+  const newWeeks=input.split(',').map(w=>w.trim()).filter(Boolean);
+  if(!newWeeks.length)return;
+  weeks=newWeeks;
+  rebuildDefs();
+  students.forEach(s=>{
+    let g={};
+    assignmentDefs.forEach(a=>{g[a.id]=s.grades[a.id]||{done:false}});
+    s.grades=g;
+  });
+  document.getElementById('stat-assignments').textContent=assignmentDefs.length;
+  renderList();
+  if(selected){selected=students.find(s=>s.id===selected.id);renderDetail();}
+  updateStats();
+  toast('Weeks updated');
+}
+
+function exportCSV(){
+  const header=['Student Name',...assignmentDefs.map(a=>`${a.week} - ${a.name}`),'Total Done','Total Possible','% Complete'];
+  const rows=[header];
+  students.forEach(s=>{
+    const c=getCompletion(s);
+    rows.push([s.name,...assignmentDefs.map(a=>s.grades[a.id]?.done?'1':'0'),c.done,c.total,c.pct+'%']);
+  });
+  const csv=rows.map(r=>r.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',')).join('\n');
+  const blob=new Blob([csv],{type:'text/csv'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download='gradebook_'+new Date().toISOString().slice(0,10)+'.csv';
+  a.click();URL.revokeObjectURL(url);
+  toast('CSV exported');
+}
+
+updateStats();
+renderList();
+</script>
+</body>
+</html>
